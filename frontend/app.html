@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story ↔ Image Generator | AI-Powered Creativity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Subtle animated gradient background - muted tones */
+        .animated-gradient {
+            background: linear-gradient(-45deg, #f5f3f0, #e8e5e0, #d9d4ce, #cec9c3);
+            background-size: 400% 400%;
+            animation: gradientShift 20s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Soft glass morphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 125, 107, 0.15);
+        }
+
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(139, 125, 107, 0.2);
+        }
+
+        /* Hover effects */
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(139, 125, 107, 0.15);
+        }
+
+        /* Upload zone animation */
+        .upload-zone {
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: #9a8b7a;
+            background: rgba(198, 178, 161, 0.08);
+        }
+
+        /* Loading animation */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(161, 142, 122, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(161, 142, 122, 0.5);
+            }
+        }
+
+        .loading-pulse {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        /* Image preview styles */
+        .image-preview {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-preview::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .image-preview:hover::after {
+            left: 100%;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(198, 178, 161, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(161, 142, 122, 0.4);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(161, 142, 122, 0.6);
+        }
+
+        /* Particle effect - subtle */
+        .particle {
+            position: absolute;
+            background: rgba(198, 178, 161, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 8s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.15; }
+            50% { transform: translateY(-20px) translateX(10px); opacity: 0.3; }
+        }
+
+        /* Custom button gradient - muted */
+        .btn-gradient {
+            background: linear-gradient(135deg, #9a8b7a 0%, #8b7a69 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-gradient::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #a89a8b 0%, #9a8b7a 100%);
+            transition: left 0.3s ease;
+        }
+
+        .btn-gradient:hover::before {
+            left: 0;
+        }
+
+        .btn-gradient span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Tab active indicator */
+        .tab-indicator {
+            position: relative;
+        }
+
+        .tab-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #9a8b7a, #a89a8b);
+            border-radius: 2px 2px 0 0;
+        }
+
+        /* Feature cards */
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: scale(1.02);
+            background: rgba(198, 178, 161, 0.1);
+        }
+    </style>
+</head>
+<body class="animated-gradient min-h-screen">
+    <!-- Decorative particles -->
+    <div class="particle" style="width: 60px; height: 60px; top: 10%; left: 15%; animation-delay: 0s;"></div>
+    <div class="particle" style="width: 40px; height: 40px; top: 70%; left: 80%; animation-delay: 3s;"></div>
+    <div class="particle" style="width: 80px; height: 80px; top: 40%; left: 5%; animation-delay: 6s;"></div>
+
+    <div id="app"></div>
+
+    <script>
+        let mode = 'image-to-story';
+        let imagePreview = '';
+        let storyInput = '';
+        let output = '';
+        let loading = false;
+        let error = '';
+        let charCountUpdateTimer = null;
+        let currentJobId = null;
+
+        // Configuration for async polling
+        const POLLING_CONFIG = {
+            interval: 1500,        // Poll every 1.5 seconds
+            timeout: 120000,       // Timeout after 2 minutes
+            maxRetries: 3          // Retry failed polls up to 3 times
+        };
+
+        /**
+         * Async polling function with timeout and exponential backoff
+         */
+        async function pollJobStatus(jobId) {
+            const startTime = Date.now();
+            let retries = 0;
+            
+            while (true) {
+                // Check timeout
+                if (Date.now() - startTime > POLLING_CONFIG.timeout) {
+                    throw new Error('Job timeout - processing took too long. Please try again.');
+                }
+
+                try {
+                    const pollRes = await fetch(`http://localhost:8000/job/${jobId}`);
+                    
+                    if (!pollRes.ok) {
+                        throw new Error(`Polling failed with HTTP ${pollRes.status}`);
+                    }
+
+                    const data = await pollRes.json();
+                    const { status } = data;
+
+                    // Job completed successfully
+                    if (status === 'completed') {
+                        return data;
+                    }
+
+                    // Job failed
+                    if (status === 'failed') {
+                        throw new Error(data.error || 'Job processing failed on server');
+                    }
+
+                    // Job still processing (pending/running)
+                    if (status === 'pending' || status === 'running') {
+                        // Wait before next poll (exponential backoff with jitter)
+                        const jitter = Math.random() * 200; // Add 0-200ms randomness
+                        await new Promise(resolve => 
+                            setTimeout(resolve, POLLING_CONFIG.interval + jitter)
+                        );
+                        retries = 0; // Reset retry count on successful poll
+                        continue;
+                    }
+
+                    // Unknown status
+                    throw new Error(`Unknown job status: ${status}`);
+
+                } catch (err) {
+                    retries++;
+                    
+                    if (retries >= POLLING_CONFIG.maxRetries) {
+                        throw new Error(`Polling failed after ${retries} retries: ${err.message}`);
+                    }
+
+                    // Wait before retry (exponential backoff)
+                    await new Promise(resolve => 
+                        setTimeout(resolve, POLLING_CONFIG.interval * Math.pow(2, retries))
+                    );
+                }
+            }
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen p-4 md:p-8">
+                    <!-- Navigation Header -->
+                    <nav class="max-w-7xl mx-auto mb-8">
+                        <div class="glass-strong rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-stone-400 to-stone-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                                    ✨
+                                </div>
+                                <div>
+                                    <h1 class="text-stone-700 font-bold text-xl">Visual Storytelling with MultiModal LMs</h1>
+                                    <p class="text-stone-500 text-xs">openai/clip & llava-hf/llava-v1.6-mistral-7b-hf & stable-diffusion-v1-5</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="hidden md:flex items-center gap-2 text-sm text-stone-600">
+                                    <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                    <span>Backend: localhost:8000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div class="max-w-7xl mx-auto">
+                        <!-- Hero Section -->
+                        <div class="text-center mb-12">
+                            <h2 class="text-5xl md:text-6xl font-extrabold text-stone-800 mb-4 leading-tight">
+                                Transform Your <span class="bg-gradient-to-r from-stone-600 via-stone-500 to-stone-600 bg-clip-text text-transparent">Imagination</span>
+                            </h2>
+                            <p class="text-stone-600 text-lg md:text-xl max-w-3xl mx-auto">
+                                Seamlessly convert images into stories or stories into stunning visuals using state-of-the-art AI models
+                            </p>
+                        </div>
+
+                        <!-- Mode Selector -->
+                        <div class="flex justify-center mb-10">
+                            <div class="glass-strong rounded-2xl p-2 inline-flex gap-2 shadow-sm">
+                                <button 
+                                    onclick="switchMode('image-to-story')"
+                                    class="${mode === 'image-to-story' ? 'bg-gradient-to-r from-stone-500 to-stone-600 text-white tab-indicator shadow-md' : 'text-stone-600 hover:text-stone-700'} px-8 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3"
+                                >
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span>Image → Story</span>
+                                </button>
+                                <button 
+                                    onclick="switchMode('story-to-image')"
+                                    class="${mode === 'story-to-image' ? 'bg-gradient-to-r from-stone-500 to-stone-600 text-white tab-indicator shadow-md' : 'text-stone-600 hover:text-stone-700'} px-8 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3"
+                                >
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
+                                    <span>Story → Image</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Main Content Grid -->
+                        <div class="grid lg:grid-cols-2 gap-8 mb-12">
+                            <!-- Input Panel -->
+                            <div class="glass-strong rounded-3xl p-8 hover-lift shadow-md">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-2xl font-bold text-stone-800 flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-stone-500 rounded-lg flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                            </svg>
+                                        </div>
+                                        Input
+                                    </h3>
+                                    <div class="text-xs font-medium px-3 py-1 bg-stone-200 text-stone-700 rounded-full">
+                                        ${mode === 'image-to-story' ? 'Image Upload' : 'Text Input'}
+                                    </div>
+                                </div>
+                                
+                                ${mode === 'image-to-story' ? `
+                                    <!-- Image Upload Zone -->
+                                    <div class="upload-zone border-2 border-dashed border-stone-400 rounded-2xl p-12 text-center cursor-pointer mb-6 bg-gradient-to-br from-stone-100/50 to-stone-200/30">
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            onchange="handleImageUpload(event)"
+                                            id="image-upload"
+                                            class="hidden"
+                                        />
+                                        <label for="image-upload" class="cursor-pointer block">
+                                            <svg class="w-20 h-20 mx-auto mb-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                            </svg>
+                                            <p class="text-stone-700 font-semibold text-lg mb-2">Drop your image here or click to browse</p>
+                                            <p class="text-sm text-stone-500">Supports: PNG, JPG, WebP • Max 10MB</p>
+                                        </label>
+                                    </div>
+                                    
+                                    ${imagePreview ? `
+                                        <div class="relative image-preview rounded-2xl overflow-hidden mb-6 group">
+                                            <img 
+                                                src="${imagePreview}" 
+                                                alt="Preview" 
+                                                class="w-full h-80 object-cover"
+                                            />
+                                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <button 
+                                                    onclick="clearImage()"
+                                                    class="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all"
+                                                >
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                ` : `
+                                    <!-- Story Input -->
+                                    <div class="mb-4">
+                                        <textarea 
+                                            id="story-textarea"
+                                            placeholder="Start writing your story here... Describe vivid scenes, compelling characters, emotions, and narrative arcs. The more detailed, the better the generated image will be."
+                                            class="w-full h-96 bg-white/50 border border-stone-300 rounded-2xl p-6 text-stone-700 placeholder-stone-400 resize-none focus:outline-none focus:border-stone-500 transition-all text-lg leading-relaxed"
+                                        >${storyInput}</textarea>
+                                        <div class="flex items-center justify-between mt-3 text-sm">
+                                            <span class="text-stone-600" id="char-count">
+                                                <span class="font-semibold">${storyInput.length}</span> characters
+                                            </span>
+                                            <span class="text-stone-500 text-xs">
+                                                💡 Tip: Be descriptive for better results
+                                            </span>
+                                        </div>
+                                    </div>
+                                `}
+
+                                <!-- Generate Button -->
+                                <button 
+                                    onclick="handleGenerate()"
+                                    ${loading ? 'disabled' : ''}
+                                    class="w-full btn-gradient text-white py-5 rounded-2xl font-bold text-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 ${loading ? 'loading-pulse' : ''}"
+                                >
+                                    <span class="flex items-center gap-3">
+                                        ${loading ? `
+                                            <svg class="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Generating Magic...</span>
+                                        ` : `
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                            </svg>
+                                            <span>Generate ${mode === 'image-to-story' ? 'Story' : 'Image'}</span>
+                                        `}
+                                    </span>
+                                </button>
+
+                                ${error ? `
+                                    <div class="mt-6 p-4 bg-rose-100 border-l-4 border-rose-400 rounded-lg">
+                                        <div class="flex items-start gap-3">
+                                            <svg class="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <p class="text-rose-700 text-sm">${error}</p>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Output Panel -->
+                            <div class="glass-strong rounded-3xl p-8 hover-lift shadow-md">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 class="text-2xl font-bold text-stone-800 flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                            </svg>
+                                        </div>
+                                        Output
+                                    </h3>
+                                    ${output ? `
+                                        <div class="text-xs font-medium px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full flex items-center gap-2">
+                                            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                            Generated
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                
+                                ${output ? `
+                                    ${mode === 'image-to-story' ? `
+                                        <div class="bg-gradient-to-br from-stone-100/70 to-amber-100/50 rounded-2xl p-6 h-[32rem] overflow-y-auto border border-stone-200">
+                                            <p class="text-stone-700 text-lg leading-relaxed whitespace-pre-wrap">
+                                                ${output}
+                                            </p>
+                                        </div>
+                                        <div class="flex gap-3 mt-4">
+                                            <button 
+                                                onclick="copyToClipboard()"
+                                                class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-semibold"
+                                            >
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                                </svg>
+                                                Copy Story
+                                            </button>
+                                        </div>
+                                    ` : `
+                                        <div class="relative image-preview rounded-2xl overflow-hidden group">
+                                            <img 
+                                                src="${output}" 
+                                                alt="Generated" 
+                                                class="w-full h-[32rem] object-cover"
+                                            />
+                                        </div>
+                                        <div class="flex gap-3 mt-4">
+                                            <button 
+                                                onclick="downloadImage()"
+                                                class="flex-1 bg-gradient-to-r from-stone-500 to-stone-600 hover:from-stone-600 hover:to-stone-700 text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-semibold"
+                                            >
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                                </svg>
+                                                Download Image
+                                            </button>
+                                        </div>
+                                    `}
+                                ` : `
+                                    <div class="h-[34rem] flex items-center justify-center">
+                                        <div class="text-center">
+                                            <div class="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-stone-300/30 to-amber-300/20 rounded-3xl flex items-center justify-center">
+                                                <svg class="w-16 h-16 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                                </svg>
+                                            </div>
+                                            <p class="text-stone-600 text-lg font-medium mb-2">Your creation awaits</p>
+                                            <p class="text-stone-500 text-sm">Generated content will appear here</p>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Technology Stack -->
+                        <div class="glass-strong rounded-3xl p-8 mb-8 shadow-md">
+                            <h3 class="text-2xl font-bold text-stone-800 mb-6 text-center">Powered By Cutting-Edge Multimodal Models</h3>
+                            <div class="grid md:grid-cols-4 gap-6">
+                                <div class="feature-card text-center p-6 rounded-2xl">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-stone-400 to-stone-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <h4 class="text-stone-800 font-semibold mb-2">openai/clip</h4>
+                                    <p class="text-stone-600 text-sm">1408D multimodal embeddings for superior understanding</p>
+                                </div>
+
+                                <div class="feature-card text-center p-6 rounded-2xl">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <h4 class="text-stone-800 font-semibold mb-2">FAISS Flat</h4>
+                                    <p class="text-stone-600 text-sm">GPU-accelerated vector search with RAG</p>
+                                </div>
+
+                                <div class="feature-card text-center p-6 rounded-2xl">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                        </svg>
+                                    </div>
+                                    <h4 class="text-stone-800 font-semibold mb-2">llava-v1.6-mistral-7b-hf</h4>
+                                    <p class="text-stone-600 text-sm">Mistral-7B vision-language reasoning</p>
+                                </div>
+
+                                <div class="feature-card text-center p-6 rounded-2xl">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-rose-400 to-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                        </svg>
+                                    </div>
+                                    <h4 class="text-stone-800 font-semibold mb-2">stable-diffusion-v1-5</h4>
+                                    <p class="text-stone-600 text-sm">Fastest, highest-quality image synthesis</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="text-center text-stone-600 text-sm">
+                            <p>Built with Redis Queue • Async Workers • Langfuse Monitoring • Backend API: <code class="bg-stone-200 px-2 py-1 rounded">http://localhost:8000</code></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // After render, attach direct event listener to textarea (only in story-to-image mode)
+            if (mode === 'story-to-image') {
+                const textarea = document.getElementById('story-textarea');
+                if (textarea) {
+                    textarea.addEventListener('input', function(e) {
+                        storyInput = e.target.value;
+                        
+                        clearTimeout(charCountUpdateTimer);
+                        charCountUpdateTimer = setTimeout(() => {
+                            const charCountEl = document.getElementById('char-count');
+                            if (charCountEl) {
+                                charCountEl.innerHTML = `<span class="font-semibold">${storyInput.length}</span> characters`;
+                            }
+                        }, 150);
+                    });
+                }
+            }
+        }
+
+        window.switchMode=function(newMode){mode=newMode;imagePreview='';storyInput='';output='';error='';currentJobId=null;render();}
+        window.handleImageUpload=function(e){const file=e.target.files[0];if(file){if(file.size>10*1024*1024){error='File size exceeds 10MB';render();return;}const reader=new FileReader();reader.onloadend=function(){imagePreview=reader.result;error='';render();};reader.readAsDataURL(file);}}
+        window.clearImage=function(){imagePreview='';document.getElementById('image-upload').value='';render();}
+
+        window.handleGenerate=async function(){
+            if(mode==='image-to-story') await generateStory();
+            else await generateImage();
+        }
+
+        async function generateStory(){
+            if(!imagePreview){error='Please upload an image first';render();return;}
+            loading=true;error='';render();
+            try{
+                const submitRes=await fetch('http://localhost:8000/generate-story',{
+                    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:imagePreview})
+                });
+                if(!submitRes.ok) throw new Error(`HTTP ${submitRes.status}`);
+                const {job_id}=await submitRes.json(); currentJobId=job_id;
+                const resultData=await pollJobStatus(job_id);
+                console.log(resultData);
+                output=resultData.result?.story||resultData.result?.text||resultData.story||resultData.text||'';
+                if(!output) throw new Error('No story found in server response');
+            }catch(err){error=`Generation failed: ${err.message}`;console.error(err);}finally{loading=false;currentJobId=null;render();}
+        }
+
+        
+         async function generateImage(){
+            if(!storyInput.trim()){error='Please enter a story first';render();return;}
+            loading=true;error='';render();
+            try{
+                console.log('=== Starting image generation ===');
+                console.log('Story length:', storyInput.length);
+                
+                const submitRes=await fetch('http://localhost:8000/generate-image',{
+                    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({story:storyInput})
+                });
+                
+                console.log('Submit response status:', submitRes.status);
+                
+                if(!submitRes.ok) {
+                    const errorText = await submitRes.text();
+                    console.error('Submit error:', errorText);
+                    throw new Error(`HTTP ${submitRes.status}: ${errorText}`);
+                }
+                
+                const submitData = await submitRes.json();
+                console.log('Submit response:', submitData);
+                
+                const job_id = submitData.job_id;
+                
+                if (!job_id || typeof job_id !== 'string' || job_id.trim() === '') {
+                    throw new Error(`Invalid job_id received: ${JSON.stringify(job_id)}`);
+                }
+                
+                console.log('Job ID:', job_id);
+                currentJobId = job_id;
+                
+                const resultData = await pollJobStatus(job_id);
+                console.log('=== Full result data ===');
+                console.log(JSON.stringify(resultData, null, 2));
+                console.log('=== Result keys ===', Object.keys(resultData));
+                if(resultData.result) console.log('=== Result.keys ===', Object.keys(resultData.result));
+                
+                // Try multiple possible locations for image data
+                let imageData = '';
+                
+                // Check all possible nested paths
+                if (resultData.result?.image_url) {
+                    console.log('Found: result.image_url');
+                    imageData = resultData.result.image_url;
+                } else if (resultData.result?.image) {
+                    console.log('Found: result.image');
+                    imageData = resultData.result.image;
+                } else if (resultData.image_url) {
+                    console.log('Found: image_url');
+                    imageData = resultData.image_url;
+                } else if (resultData.image) {
+                    console.log('Found: image');
+                    imageData = resultData.image;
+                } else if (typeof resultData.result === 'string') {
+                    console.log('Found: result is string');
+                    imageData = resultData.result;
+                }
+                
+                console.log('=== Image data info ===');
+                console.log('Type:', typeof imageData);
+                console.log('Length:', imageData?.length || 0);
+                console.log('First 100 chars:', imageData?.substring(0, 100));
+                
+                if(!imageData) {
+                    console.error('Full result structure:', JSON.stringify(resultData, null, 2));
+                    throw new Error('No image data found in response. Check console logs above.');
+                }
+                
+                if(typeof imageData !== 'string') {
+                    throw new Error(`Image data is ${typeof imageData}, expected string`);
+                }
+                
+                if(!imageData.startsWith('data:image/')) {
+                    throw new Error(`Invalid image format. Got: ${imageData.substring(0, 50)}...`);
+                }
+                
+                console.log('✓ Valid image data URI found');
+                output=imageData;
+            }catch(err){
+                console.error('=== Error details ===');
+                console.error('Error name:', err.name);
+                console.error('Error message:', err.message);
+                console.error('Full error:', err);
+                error=`Generation failed: ${err.message}`;
+            }finally{loading=false;currentJobId=null;render();}
+        }
+        
+        window.downloadImage=function(){
+            if(!output){alert('No image to download');return;}
+            try{
+                const [header,base64Data]=output.split(',');
+                const byteCharacters=atob(base64Data);
+                const byteNumbers=new Array(byteCharacters.length);
+                for(let i=0;i<byteCharacters.length;i++) byteNumbers[i]=byteCharacters.charCodeAt(i);
+                const byteArray=new Uint8Array(byteNumbers);
+                const mimeMatch=header.match(/data:(image\/\w+);base64/);
+                const mimeType=mimeMatch?mimeMatch[1]:'image/png';
+                const blob=new Blob([byteArray],{type:mimeType});
+                const url=URL.createObjectURL(blob);
+                const a=document.createElement('a');a.style.display='none';a.href=url;a.download=`storygen-${Date.now()}.${mimeType.split('/')[1]||'png'}`;
+                document.body.appendChild(a);a.click();
+                setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+            }catch(err){alert(`Failed to download image: ${err.message}`);}
+        }
+
+        window.copyToClipboard=function(){
+            navigator.clipboard.writeText(output).then(()=>{
+                const btn=event.target.closest('button');
+                const originalHTML=btn.innerHTML;
+                btn.innerHTML=`<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!`;
+                setTimeout(()=>{btn.innerHTML=originalHTML;},2000);
+            });
+        }
+
+        render();
+    </script>
+</body>
+</html>
